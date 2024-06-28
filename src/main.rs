@@ -168,7 +168,7 @@ fn main() -> Result<(), Error> {
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(100, 100, surface_texture)?
+        Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture)?
     };
 
     let mut tubes = vec![];
@@ -182,14 +182,14 @@ fn main() -> Result<(), Error> {
     tubes.push(RefCell::new(Tube::new(
         0.5,
         Facing::E,
-        Point::new(100.0, 100.0),
+        Point::new(WIDTH as f32, HEIGHT as f32),
         0.03,
         [0x5e, 0x48, 0xe8, 0xff],
     )));
     tubes.push(RefCell::new(Tube::new(
         0.2,
         Facing::E,
-        Point::new(0.0, 100.0),
+        Point::new(0.0, HEIGHT as f32),
         0.01,
         [0x57, 0xEB, 0xB3, 0xff],
     )));
