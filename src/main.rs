@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use pixels::{Error, Pixels, SurfaceTexture};
 use rand::rngs::ThreadRng;
 use rand::{thread_rng, Rng};
@@ -19,6 +21,10 @@ struct Point {
 impl Point {
     fn zero() -> Point {
         Point { x: 0.0, y: 0.0 }
+    }
+
+    fn new(x: f32, y: f32) -> Point {
+        Point { x, y }
     }
 }
 
@@ -70,10 +76,17 @@ struct Tube {
     last_pos: Point,
     turn_chance: f32,
     rng: ThreadRng,
+    colour: [u8; 4],
 }
 
 impl Tube {
-    fn new(speed: f32, direction: Facing, current_pos: Point, turn_chance: f32) -> Tube {
+    fn new(
+        speed: f32,
+        direction: Facing,
+        current_pos: Point,
+        turn_chance: f32,
+        colour: [u8; 4],
+    ) -> Tube {
         Tube {
             speed,
             direction,
@@ -81,6 +94,7 @@ impl Tube {
             turn_chance,
             last_pos: current_pos,
             rng: thread_rng(),
+            colour,
         }
     }
     fn move_forward(&mut self) {
@@ -153,7 +167,21 @@ fn main() -> Result<(), Error> {
         Pixels::new(100, 100, surface_texture)?
     };
 
-    let mut tube = Tube::new(0.7, Facing::E, Point::zero(), 0.06);
+    let mut tubes = vec![];
+    tubes.push(RefCell::new(Tube::new(
+        0.7,
+        Facing::E,
+        Point::zero(),
+        0.06,
+        [0x48, 0xb2, 0xe8, 0xff],
+    )));
+    tubes.push(RefCell::new(Tube::new(
+        0.5,
+        Facing::E,
+        Point::new(100.0, 100.0),
+        0.03,
+        [0x5e, 0x48, 0xe8, 0xff],
+    )));
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent { event, .. } => match event {
@@ -183,7 +211,9 @@ fn main() -> Result<(), Error> {
         },
 
         Event::MainEventsCleared => {
-            tube.incrememnt();
+            for tube in &tubes {
+                tube.borrow_mut().incrememnt();
+            }
             window.request_redraw();
         }
 
@@ -196,23 +226,26 @@ fn main() -> Result<(), Error> {
             //} else {
             //}
             // TODO: replace with code actually drawing a line, as processing every pixel is slow
-            for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-                let x = i % 100;
-                let y = i / 100;
 
-                let x1 = tube.last_pos.x as usize;
-                let y1 = tube.last_pos.y as usize;
-                let x2 = tube.current_pos.x as usize;
-                let y2 = tube.current_pos.y as usize;
+            for tube in &tubes {
+                let tube = tube.borrow_mut();
+                for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
+                    let x = i % 100;
+                    let y = i / 100;
 
-                let on_line = (x1 <= x && x <= x2 && y1 <= y && y <= y2)
-                    || (x1 >= x && x >= x2 && y1 >= y && y >= y2);
+                    let x1 = tube.last_pos.x as usize;
+                    let y1 = tube.last_pos.y as usize;
+                    let x2 = tube.current_pos.x as usize;
+                    let y2 = tube.current_pos.y as usize;
 
-                if on_line {
-                    pixel.copy_from_slice(&[0x48, 0xb2, 0xe8, 0xff]);
+                    let on_line = (x1 <= x && x <= x2 && y1 <= y && y <= y2)
+                        || (x1 >= x && x >= x2 && y1 >= y && y >= y2);
+
+                    if on_line {
+                        pixel.copy_from_slice(&tube.colour);
+                    }
                 }
             }
-
             if let Err(err) = pixels.render() {
                 println!("render error");
                 *control_flow = ControlFlow::Exit;
