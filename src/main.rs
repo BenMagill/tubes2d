@@ -159,7 +159,11 @@ impl Tube {
 fn main() -> Result<(), Error> {
     let event_loop = EventLoop::new();
 
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+    let window = WindowBuilder::new()
+        .with_resizable(false)
+        .with_title("Tubes2d")
+        .build(&event_loop)
+        .unwrap();
 
     let mut pixels = {
         let window_size = window.inner_size();
